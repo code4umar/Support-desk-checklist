@@ -58,7 +58,6 @@ export class TicketsService {
   async findAll(query: ListTicketsQueryDto, user: AuthUser) {
     const qb = this.tickets.createQueryBuilder('ticket');
 
-    // A customer's world is smaller no matter what they ask for.
     if (user.role === UserRole.CUSTOMER) {
       qb.andWhere('ticket.requester_id = :userId', { userId: user.id });
     }
@@ -96,7 +95,6 @@ export class TicketsService {
       );
     }
 
-    // total is counted BEFORE paging is applied — the classic mistake to avoid.
     const total = await qb.getCount();
 
     const sortColumn =
@@ -133,7 +131,10 @@ export class TicketsService {
   // Loads + enforces visibility in one step; use this from every endpoint
   // that takes a :id, so a customer always gets 404 rather than 403/200.
   async findVisibleOrFail(id: number, user: AuthUser): Promise<Ticket> {
-    const ticket = await this.tickets.findOne({ where: { id } });
+    const ticket = await this.tickets.findOne({
+      where: { id },
+      relations: ['requester', 'assignee', 'ticketTags', 'ticketTags.tag'],
+    });
     assertTicketVisible(ticket, user);
     return ticket as Ticket;
   }
@@ -141,9 +142,6 @@ export class TicketsService {
   async update(id: number, dto: UpdateTicketDto, user: AuthUser): Promise<Ticket> {
     const ticket = await this.findVisibleOrFail(id, user);
 
-    // By this point a customer can only reach their own ticket (visibility
-    // already threw 404 otherwise), so the only remaining check is that
-    // an agent/admin or the owning customer is allowed to PATCH.
     const isOwner = ticket.requester_id === user.id;
     const isStaff = user.role === UserRole.AGENT || user.role === UserRole.ADMIN;
     if (!isOwner && !isStaff) {
@@ -162,7 +160,7 @@ export class TicketsService {
   // ---- Rule 5: assignee must be agent or admin -> 422 otherwise ----
   // ---- Rule 7: every assignment writes a ticket_events row ----
   async assign(id: number, dto: AssignTicketDto, actor: AuthUser): Promise<Ticket> {
-    const ticket = await this.findOneOrFail(id); // agents/admins see all tickets
+    const ticket = await this.findOneOrFail(id);
 
     const candidate = await this.usersService.findById(dto.assigneeId);
     if (
@@ -177,9 +175,6 @@ export class TicketsService {
     ticket.assignee_id = candidate.id;
     const saved = await this.tickets.save(ticket);
 
-    // The schema has no dedicated "assignee changed" columns, so the
-    // assignment is recorded in `note` with status columns left null —
-    // it's an event, just not a status-transition event.
     await this.events.save(
       this.events.create({
         ticket_id: ticket.id,
@@ -209,7 +204,6 @@ export class TicketsService {
       );
     }
 
-    // Reopening a closed ticket requires a non-empty note.
     const isReopeningClosed =
       ticket.status === TicketStatus.CLOSED &&
       dto.status === TicketStatus.IN_PROGRESS;
