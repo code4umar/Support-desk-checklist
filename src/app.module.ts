@@ -28,6 +28,7 @@ import { TagsModule } from './tags/tags.module';
         username: config.get('DB_USERNAME', 'postgres'),
         password: config.get('DB_PASSWORD', 'postgres'),
         database: config.get('DB_DATABASE', 'support_desk'),
+        ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
         entities: [User, Ticket, Comment, Tag, TicketTag, TicketEvent],
         synchronize: false, // schema only changes via migrations
         logging: config.get('NODE_ENV') === 'development',

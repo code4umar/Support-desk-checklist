@@ -1,4 +1,4 @@
-# Support Desk — Backend
+# Helmly — Backend
 
 Coding Pixel Full-Stack Internship — Week 10 Capstone (backend).
 Stack: NestJS · PostgreSQL · TypeORM · TypeScript.
