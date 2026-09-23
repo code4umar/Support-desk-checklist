@@ -8,6 +8,7 @@ import { Comment } from './comments/comment.entity';
 import { Tag } from './tags/tag.entity';
 import { TicketTag } from './tags/ticket-tag.entity';
 import { TicketEvent } from './tickets/ticket-event.entity';
+import { HealthController } from './health/health.controller';
 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -40,6 +41,6 @@ import { TagsModule } from './tags/tags.module';
     CommentsModule,
     TagsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
-
