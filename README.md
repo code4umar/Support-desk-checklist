@@ -1,5 +1,15 @@
-# Helmly — Backend
+# Deskly — Backend
 
+**Live API:** https://support-desk-checklist-production.up.railway.app
+**Live client:** https://support-desk-client.vercel.app
+**Health check:** https://support-desk-checklist-production.up.railway.app/health
+
+See `docs/RUNBOOK.md` for deployment, rollback, and operations. See `docs/HARDENING.md` for Week 12 hardening changes.
+
+Coding Pixel Full-Stack Internship — Week 10 Capstone (backend).
+Stack: NestJS · PostgreSQL · TypeORM · TypeScript.
+
+## Status: Days 1–5 complete
 Coding Pixel Full-Stack Internship — Week 10 Capstone (backend).
 Stack: NestJS · PostgreSQL · TypeORM · TypeScript.
 
