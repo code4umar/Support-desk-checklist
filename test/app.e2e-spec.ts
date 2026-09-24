@@ -263,10 +263,39 @@ describe('Support Desk (e2e)', () => {
     expect(res.body.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("hides the ticket's events from customer B (404)", async () => {
+    it("hides the ticket's events from customer B (404)", async () => {
     await request(server)
       .get(`/tickets/${ticketId}/events`)
       .set('Authorization', `Bearer ${customerBToken}`)
       .expect(404);
+  });
+
+  it('GET /health returns 200 with database connectivity status', async () => {
+    const res = await request(server).get('/health').expect(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.database).toBeDefined();
+  });
+
+  it('rate limits login after repeated failed attempts (429)', async () => {
+    const attemptEmail = `e2e-ratelimit-${stamp}@test.com`;
+    let lastStatus = 0;
+    for (let i = 0; i < 6; i++) {
+      const res = await request(server)
+        .post('/auth/login')
+        .send({ email: attemptEmail, password: 'wrong-password' });
+      lastStatus = res.status;
+    }
+    expect(lastStatus).toBe(429);
+  });
+
+    it('returns a production-shaped error with no stack trace or SQL on a malformed request', async () => {
+    const res = await request(server)
+      .post('/auth/register')
+      .send({ email: 123, password: null, full_name: 456 })
+      .expect(400);
+          const body = JSON.stringify(res.body);
+    expect(body).not.toMatch(/at\s+\w+\s+\(/);
+    expect(body.toUpperCase()).not.toMatch(/SELECT |INSERT |UPDATE |DELETE /);
+    expect(res.body.statusCode).toBe(400);
   });
 });
