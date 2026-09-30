@@ -1,15 +1,11 @@
 # Deskly — Backend
 
 **Live API:** https://support-desk-checklist-production.up.railway.app
-**Live client:** https://support-desk-client.vercel.app
+**Live client:** https://trydeskly.vercel.app
 **Health check:** https://support-desk-checklist-production.up.railway.app/health
 
 See `docs/RUNBOOK.md` for deployment, rollback, and operations. See `docs/HARDENING.md` for Week 12 hardening changes.
 
-Coding Pixel Full-Stack Internship — Week 10 Capstone (backend).
-Stack: NestJS · PostgreSQL · TypeORM · TypeScript.
-
-## Status: Days 1–5 complete
 Coding Pixel Full-Stack Internship — Week 10 Capstone (backend).
 Stack: NestJS · PostgreSQL · TypeORM · TypeScript.
 
@@ -129,23 +125,3 @@ See `.env.example`:
 | `CORS_ORIGIN` | Allowed frontend origin (default `http://localhost:3000`) |
 
 ## Project structure
-
-```
-docs/ERD.md              Mermaid diagram, all 6 tables
-src/auth/                register, login, me, JWT strategy, roles guard
-src/users/                user entity + lookup service
-src/tickets/              tickets, assign, status machine, list query, events
-src/comments/             comments, internal-comment rule
-src/tags/                 tags, ticket-tag attach/detach
-src/common/               shared guards, decorators, exception filter, visibility helper
-src/migrations/           the one committed migration
-src/seed/                 seed script (safe to re-run)
-test/app.e2e-spec.ts      end-to-end spec, real HTTP + real DB
-.github/workflows/ci.yml  Node 20, spins up Postgres, runs migrations + seed + both test suites
-```
-
-## Known implementation notes (for the check-in demo)
-
-- `ticket_tags` is an explicit entity (not an implicit TypeORM `@ManyToMany` join table) so the composite primary key and cascade behavior are explicit and reviewable.
-- `ticket_events` has no dedicated "assignee changed" columns (the spec's fixed schema only has `from_status`/`to_status`/`note`), so assignment events are recorded with both status columns `null` and a human-readable `note` describing the change.
-- `password_hash` has `select: false` on the `User` entity — it is never returned unless a query explicitly re-adds it, which only `AuthService.login()` does (to compare the hash).
