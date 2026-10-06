@@ -17,16 +17,12 @@ import { UsersModule } from './users/users.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { CommentsModule } from './comments/comments.module';
 import { TagsModule } from './tags/tags.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000, // 60 seconds window
-        limit: 20,  // generous global default; login has its own stricter limit
-      },
-    ]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -48,6 +44,7 @@ import { TagsModule } from './tags/tags.module';
     TicketsModule,
     CommentsModule,
     TagsModule,
+    StatsModule,
   ],
   controllers: [HealthController],
   providers: [
