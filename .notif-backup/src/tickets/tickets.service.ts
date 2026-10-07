@@ -12,8 +12,6 @@ import { Ticket } from './ticket.entity';
 import { TicketEvent } from './ticket-event.entity';
 import { TicketTag } from '../tags/ticket-tag.entity';
 import { UsersService } from '../users/users.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/notification.entity';
 import {
   TicketStatus,
   TicketPriority,
@@ -36,7 +34,6 @@ export class TicketsService {
     @InjectRepository(TicketEvent) private events: Repository<TicketEvent>,
     @InjectRepository(TicketTag) private ticketTags: Repository<TicketTag>,
     private usersService: UsersService,
-    private notifications: NotificationsService,
   ) {}
 
   // ---- Rule 8: due_at is computed server-side from priority, on create only ----
@@ -54,17 +51,7 @@ export class TicketsService {
       requester_id: user.id,
       due_at: this.computeDueAt(dto.priority),
     });
-    const saved = await this.tickets.save(ticket);
-
-    // tell every admin (except the creator) about the new ticket
-    await this.notifications.notifyAdmins({
-      type: NotificationType.TICKET_CREATED,
-      message: `New ticket #${saved.id}: ${saved.subject} (by ${user.email})`,
-      ticketId: saved.id,
-      actorId: user.id,
-    });
-
-    return saved;
+    return this.tickets.save(ticket);
   }
 
   // ---- Rule 2 (visibility) + filters/search/sort/page (requirements 13-14) ----

@@ -6,7 +6,6 @@ import { Ticket } from './ticket.entity';
 import { TicketEvent } from './ticket-event.entity';
 import { TicketTag } from '../tags/ticket-tag.entity';
 import { UsersService } from '../users/users.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { TicketStatus, TicketPriority, UserRole } from '../common/enums';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 
@@ -27,7 +26,6 @@ describe('TicketsService', () => {
   let ticketRepo: ReturnType<typeof mockRepo>;
   let eventRepo: ReturnType<typeof mockRepo>;
   let usersService: { findById: jest.Mock };
-  let notifications: { notifyAdmins: jest.Mock };
 
   const agent: AuthUser = { id: 99, email: 'agent@x.com', role: UserRole.AGENT };
   const customer: AuthUser = { id: 5, email: 'cust@x.com', role: UserRole.CUSTOMER };
@@ -36,7 +34,6 @@ describe('TicketsService', () => {
     ticketRepo = mockRepo();
     eventRepo = mockRepo();
     usersService = { findById: jest.fn() };
-    notifications = { notifyAdmins: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -45,7 +42,6 @@ describe('TicketsService', () => {
         { provide: getRepositoryToken(TicketEvent), useValue: eventRepo },
         { provide: getRepositoryToken(TicketTag), useValue: mockRepo() },
         { provide: UsersService, useValue: usersService },
-        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
 
@@ -149,20 +145,5 @@ describe('TicketsService', () => {
     const result = await service.assign(1, { assigneeId: 7 }, agent);
     expect(result.assignee_id).toBe(7);
     expect(eventRepo.save).toHaveBeenCalled(); // rule 7: assignment writes an event
-  });
-
-  // ---- notifications: creating a ticket tells the admins
-  it('notifies admins when a ticket is created (excluding the creator)', async () => {
-    const saved = await service.create(
-      { subject: 'Printer broken', body: 'It smokes', priority: TicketPriority.HIGH } as any,
-      customer,
-    );
-
-    expect(notifications.notifyAdmins).toHaveBeenCalledTimes(1);
-    const arg = notifications.notifyAdmins.mock.calls[0][0];
-    expect(arg.type).toBe('ticket_created');
-    expect(arg.ticketId).toBe(saved.id);
-    expect(arg.actorId).toBe(customer.id);
-    expect(arg.message).toContain('Printer broken');
   });
 });

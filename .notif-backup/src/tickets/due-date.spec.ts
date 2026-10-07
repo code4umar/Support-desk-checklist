@@ -5,7 +5,6 @@ import { Ticket } from './ticket.entity';
 import { TicketEvent } from './ticket-event.entity';
 import { TicketTag } from '../tags/ticket-tag.entity';
 import { UsersService } from '../users/users.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { TicketPriority, UserRole, PRIORITY_DUE_HOURS } from '../common/enums';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 
@@ -32,7 +31,6 @@ describe('TicketsService — due_at calculation (rule 8)', () => {
         { provide: getRepositoryToken(TicketEvent), useValue: mockRepo() },
         { provide: getRepositoryToken(TicketTag), useValue: mockRepo() },
         { provide: UsersService, useValue: { findById: jest.fn() } },
-        { provide: NotificationsService, useValue: { notifyAdmins: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(TicketsService);

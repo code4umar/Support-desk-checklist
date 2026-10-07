@@ -1,0 +1,8 @@
+[
+  "src/notifications/notification.entity.ts",
+  "src/notifications/notifications.service.ts",
+  "src/notifications/notifications.controller.ts",
+  "src/notifications/notifications.module.ts",
+  "src/notifications/notifications.service.spec.ts",
+  "src/migrations/1790300000000-AddNotifications.ts"
+]

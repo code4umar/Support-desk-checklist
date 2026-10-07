@@ -13,8 +13,6 @@ import { UserRole } from '../common/enums';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { sanitizeUser } from '../common/utils/sanitize-user';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/notification.entity';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -23,7 +21,6 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
-    private notifications: NotificationsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -66,13 +63,6 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-    });
-
-    // tell every admin (except the person logging in) that someone signed in
-    await this.notifications.notifyAdmins({
-      type: NotificationType.USER_LOGIN,
-      message: `${user.full_name} (${user.role}) logged in`,
-      actorId: user.id,
     });
 
     return { access_token, user: sanitizeUser(user) };
