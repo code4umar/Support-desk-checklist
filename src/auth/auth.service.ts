@@ -99,13 +99,17 @@ export class AuthService {
   // ---- Password reset ----
   // Always answers the same way, so nobody can use this to learn which
   // emails are registered.
-  async forgotPassword(dto: ForgotPasswordDto) {
+    async forgotPassword(dto: ForgotPasswordDto) {
     const generic = {
       message: 'If an account exists for that email, a reset link has been sent.',
     };
+    console.log('[forgotPassword] request received for', dto.email);
 
     const user = await this.users.findOne({ where: { email: dto.email } });
-    if (!user) return generic;
+    if (!user) {
+      console.log('[forgotPassword] NO USER found for', dto.email);
+      return generic;
+    }
 
     // only the SHA-256 hash is stored; the real token only ever exists in the email link
     const token = randomBytes(32).toString('hex');
@@ -126,7 +130,9 @@ export class AuthService {
     );
 
     const base = process.env.FRONTEND_URL || 'http://localhost:3000';
-    this.deliverResetLink(user.email, `${base}/reset-password?token=${token}`);
+    const link = `${base}/reset-password?token=${token}`;
+    console.log('[forgotPassword] RESET LINK (temporary debug):', link);
+    this.deliverResetLink(user.email, link);
 
     return generic;
   }
