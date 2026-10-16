@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   ConflictException,
+  Optional,
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
@@ -20,6 +21,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { sanitizeUser } from '../common/utils/sanitize-user';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/notification.entity';
+import { MailService } from '../mail/mail.service';
 
 const BCRYPT_ROUNDS = 10;
 const RESET_TTL_MS = 60 * 60 * 1000; // reset links live for 1 hour
@@ -34,6 +36,7 @@ export class AuthService {
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
     private notifications: NotificationsService,
+    @Optional() private mail?: MailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -172,5 +175,20 @@ export class AuthService {
     if (process.env.NODE_ENV !== 'production') {
       this.logger.log(`Password reset link for ${email}: ${link}`);
     }
+    void this.mail?.send({
+      to: email,
+      subject: 'Reset your Deskly password',
+      text:
+        `We received a request to reset the password for your Deskly account.\n\n` +
+        `Choose a new password here (the link works for 1 hour):\n${link}\n\n` +
+        `If you did not ask for this, you can ignore this email.`,
+      html:
+        `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0d1a35">` +
+        `<h2 style="margin:0 0 12px">Reset your password</h2>` +
+        `<p style="line-height:1.5">We received a request to reset the password for your Deskly account. The link below works for 1 hour.</p>` +
+        `<p><a href="${link}" style="background:#1fe5d8;color:#0d1a35;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:10px;display:inline-block">Choose a new password</a></p>` +
+        `<p style="font-size:13px;color:#52627f">If you did not ask for this, you can ignore this email.</p>` +
+        `</div>`,
+    });
   }
 }

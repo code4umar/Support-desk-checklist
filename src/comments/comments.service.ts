@@ -45,6 +45,19 @@ export class CommentsService {
       // A customer never receives an internal comment, full stop.
       where.is_internal = false;
     }
-    return this.comments.find({ where, order: { created_at: 'ASC' } });
+
+    const rows = await this.comments.find({
+      where,
+      relations: { author: true },
+      order: { created_at: 'ASC' },
+    });
+
+    // Send the author's name and role, but never the whole user record
+    // (no email), so a customer cannot read staff email addresses.
+    return rows.map(({ author, ...comment }) => ({
+      ...comment,
+      author_name: author?.full_name ?? null,
+      author_role: author?.role ?? null,
+    }));
   }
 }

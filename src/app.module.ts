@@ -20,6 +20,10 @@ import { CommentsModule } from './comments/comments.module';
 import { TagsModule } from './tags/tags.module';
 import { StatsModule } from './stats/stats.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DirectoryModule } from './directory/directory.module';
+import { RatingsModule } from './ratings/ratings.module';
+import { AiModule } from './ai/ai.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -41,6 +45,7 @@ import { NotificationsModule } from './notifications/notifications.module';
         logging: config.get('NODE_ENV') === 'development',
       }),
     }),
+    MailModule,
     AuthModule,
     UsersModule,
     TicketsModule,
@@ -48,6 +53,9 @@ import { NotificationsModule } from './notifications/notifications.module';
     TagsModule,
     StatsModule,
     NotificationsModule,
+    DirectoryModule,
+    RatingsModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [
