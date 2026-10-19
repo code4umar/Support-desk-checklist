@@ -24,6 +24,7 @@ import { DirectoryModule } from './directory/directory.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { AiModule } from './ai/ai.module';
 import { MailModule } from './mail/mail.module';
+import { CannedRepliesModule } from './canned-replies/canned-replies.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { MailModule } from './mail/mail.module';
     DirectoryModule,
     RatingsModule,
     AiModule,
+    CannedRepliesModule,
   ],
   controllers: [HealthController],
   providers: [
