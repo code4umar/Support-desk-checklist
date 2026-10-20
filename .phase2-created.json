@@ -1,0 +1,13 @@
+[
+  "src/activity/activity-log.entity.ts",
+  "src/activity/activity.service.ts",
+  "src/activity/activity.controller.ts",
+  "src/activity/activity.module.ts",
+  "src/users/dto/update-profile.dto.ts",
+  "src/users/dto/change-password.dto.ts",
+  "src/users/dto/update-role.dto.ts",
+  "src/users/account.service.ts",
+  "src/users/users.controller.ts",
+  "src/users/account.service.spec.ts",
+  "src/migrations/1790700000000-AddActivityLogs.ts"
+]

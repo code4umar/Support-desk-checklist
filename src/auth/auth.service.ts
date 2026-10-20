@@ -22,6 +22,7 @@ import { sanitizeUser } from '../common/utils/sanitize-user';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/notification.entity';
 import { MailService } from '../mail/mail.service';
+import { ActivityService } from '../activity/activity.service';
 
 const BCRYPT_ROUNDS = 10;
 const RESET_TTL_MS = 60 * 60 * 1000; // reset links live for 1 hour
@@ -36,6 +37,7 @@ export class AuthService {
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
     private notifications: NotificationsService,
+    private activity: ActivityService,
     @Optional() private mail?: MailService,
   ) {}
 
@@ -54,6 +56,13 @@ export class AuthService {
       role: UserRole.CUSTOMER, // rule 1: registration ALWAYS creates a customer
     });
     const saved = await this.users.save(user);
+    await this.activity.log({
+      actorId: saved.id,
+      action: 'user_registered',
+      targetType: 'user',
+      targetId: saved.id,
+      details: `${saved.full_name} (${saved.email}) registered`,
+    });
     return sanitizeUser(saved);
   }
 
@@ -87,6 +96,7 @@ export class AuthService {
       message: `${user.full_name} (${user.role}) logged in`,
       actorId: user.id,
     });
+    await this.activity.log({ actorId: user.id, action: 'login', targetType: 'user', targetId: user.id });
 
     return { access_token, user: sanitizeUser(user) };
   }
