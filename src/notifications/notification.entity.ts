@@ -13,6 +13,7 @@ import { Ticket } from '../tickets/ticket.entity';
 export enum NotificationType {
   TICKET_CREATED = 'ticket_created',
   USER_LOGIN = 'user_login',
+  MENTION = 'mention',
   USER_REGISTERED = 'user_registered',
 }
 

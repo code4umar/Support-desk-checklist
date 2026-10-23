@@ -1,12 +1,16 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Comment } from './comment.entity';
 import { Ticket } from '../tickets/ticket.entity';
 import { UserRole } from '../common/enums';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { assertTicketVisible } from '../common/utils/ticket-visibility';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { User } from '../users/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/notification.entity';
+import { findMentionedUsers } from './mentions';
 
 @Injectable()
 export class CommentsService {

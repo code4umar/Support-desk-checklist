@@ -47,6 +47,35 @@ export class NotificationsService {
     }
   }
 
+  // Notifies specific people (e.g. someone tagged in a comment), never the person who caused it.
+  // Like notifyAdmins, it must NEVER break the main action.
+  async notifyUsers(input: {
+    userIds: number[];
+    type: NotificationType;
+    message: string;
+    ticketId?: number | null;
+    actorId?: number | null;
+  }): Promise<void> {
+    try {
+      const ids = [...new Set(input.userIds)].filter((id) => id !== input.actorId);
+      if (ids.length === 0) return;
+      await this.notifications.save(
+        ids.map((id) =>
+          this.notifications.create({
+            user_id: id,
+            type: input.type,
+            message: input.message,
+            ticket_id: input.ticketId ?? null,
+            actor_id: input.actorId ?? null,
+            read_at: null,
+          }),
+        ),
+      );
+    } catch (err) {
+      this.logger.warn(`Could not create notification: ${(err as Error).message}`);
+    }
+  }
+
   // One call gives the bell everything it needs (list + unread badge number).
   async list(userId: number, limit = 20) {
     const [items, unread] = await Promise.all([

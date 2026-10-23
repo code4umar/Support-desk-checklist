@@ -1,0 +1,5 @@
+[
+  "src/comments/mentions.ts",
+  "src/comments/mentions.spec.ts",
+  "src/comments/comments.service.spec.ts"
+]
