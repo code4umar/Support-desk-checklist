@@ -17,6 +17,8 @@ export class CommentsService {
   constructor(
     @InjectRepository(Comment) private comments: Repository<Comment>,
     @InjectRepository(Ticket) private tickets: Repository<Ticket>,
+    @InjectRepository(User) private users: Repository<User>,
+    private notifications: NotificationsService,
   ) {}
 
   async create(ticketId: number, dto: CreateCommentDto, user: AuthUser) {
@@ -36,7 +38,35 @@ export class CommentsService {
       body: dto.body,
       is_internal: wantsInternal,
     });
-    return this.comments.save(comment);
+    const savedComment = await this.comments.save(comment);
+
+    // Mentions & Notifications (Failure in this block should never break comment creation)
+    try {
+      const allUsers = await this.users.find();
+      const mentionedUsers = findMentionedUsers(dto.body, allUsers, user.id);
+      const mentionedUserIds = mentionedUsers.map((u) => u.id);
+
+      if (mentionedUserIds && mentionedUserIds.length > 0) {
+        const authorUser = allUsers.find((u) => u.id === user.id);
+        const authorName =
+          authorUser?.full_name ||
+          (user as any).full_name ||
+          (user as any).name ||
+          'User';
+
+        await this.notifications.notifyUsers({
+          userIds: mentionedUserIds,
+          type: NotificationType.MENTION,
+          message: `${authorName} mentioned you on ticket #${ticketId}`,
+          ticketId: ticketId,
+          actorId: user.id,
+        });
+      }
+    } catch (err) {
+      // Intentionally ignore errors so notification failure never breaks comment creation
+    }
+
+    return savedComment;
   }
 
   async findAllForTicket(ticketId: number, user: AuthUser) {
