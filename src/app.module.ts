@@ -12,6 +12,7 @@ import { TicketTag } from './tags/ticket-tag.entity';
 import { TicketEvent } from './tickets/ticket-event.entity';
 import { Notification } from './notifications/notification.entity';
 import { ActivityLog } from './activity/activity-log.entity';
+import { TicketAttachment } from './attachments/ticket-attachment.entity';
 import { HealthController } from './health/health.controller';
 
 import { AuthModule } from './auth/auth.module';
@@ -22,6 +23,7 @@ import { TagsModule } from './tags/tags.module';
 import { StatsModule } from './stats/stats.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ActivityModule } from './activity/activity.module';
+import { AttachmentsModule } from './attachments/attachments.module';
 import { DirectoryModule } from './directory/directory.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { AiModule } from './ai/ai.module';
@@ -43,7 +45,7 @@ import { CannedRepliesModule } from './canned-replies/canned-replies.module';
         password: config.get('DB_PASSWORD', 'postgres'),
         database: config.get('DB_DATABASE', 'support_desk'),
         ssl: config.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
-        entities: [User, Ticket, Comment, Tag, TicketTag, TicketEvent, Notification, ActivityLog],
+        entities: [User, Ticket, Comment, Tag, TicketTag, TicketEvent, Notification, ActivityLog, TicketAttachment],
         synchronize: false, // schema only changes via migrations
         logging: config.get('NODE_ENV') === 'development',
       }),
@@ -57,6 +59,7 @@ import { CannedRepliesModule } from './canned-replies/canned-replies.module';
     StatsModule,
     NotificationsModule,
     ActivityModule,
+    AttachmentsModule,
     DirectoryModule,
     RatingsModule,
     AiModule,

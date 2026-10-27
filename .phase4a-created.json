@@ -1,0 +1,10 @@
+[
+  "src/attachments/ticket-attachment.entity.ts",
+  "src/attachments/attachment-rules.ts",
+  "src/attachments/attachment-rules.spec.ts",
+  "src/attachments/attachments.service.ts",
+  "src/attachments/attachments.service.spec.ts",
+  "src/attachments/attachments.controller.ts",
+  "src/attachments/attachments.module.ts",
+  "src/migrations/1790800000000-AddTicketAttachments.ts"
+]
