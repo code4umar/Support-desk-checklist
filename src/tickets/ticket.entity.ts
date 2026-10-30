@@ -59,6 +59,15 @@ export class Ticket {
   @Column({ type: 'timestamptz' })
   due_at: Date;
 
+  // Optional grouping (Billing, Technical Issue...). Set to NULL if the category is deleted.
+  @Column({ type: 'int', nullable: true })
+  category_id: number | null;
+
+  // Set when this ticket is a duplicate of a "known issue" (another ticket).
+  // Resolving that ticket resolves this one too. Only one level deep.
+  @Column({ type: 'int', nullable: true })
+  known_issue_id: number | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

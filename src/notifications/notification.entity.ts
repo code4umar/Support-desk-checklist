@@ -15,6 +15,7 @@ export enum NotificationType {
   USER_LOGIN = 'user_login',
   MENTION = 'mention',
   USER_REGISTERED = 'user_registered',
+  TICKET_RESOLVED = 'ticket_resolved',
 }
 
 // One row per recipient: if 3 admins exist, a new ticket creates 3 rows,

@@ -28,6 +28,11 @@ export class ListTicketsQueryDto {
   assigneeId?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  categoryId?: number;
+
+  @IsOptional()
   @IsString()
   tag?: string;
 
