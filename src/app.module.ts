@@ -50,6 +50,8 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
         entities: [User, Ticket, Comment, Tag, TicketTag, TicketEvent, Notification, ActivityLog, TicketAttachment],
         synchronize: false, // schema only changes via migrations
         logging: config.get('NODE_ENV') === 'development',
+        // on Vercel a request can't wait out ~30s of reconnect attempts: fail fast and say why
+        ...(process.env.VERCEL ? { retryAttempts: 1, retryDelay: 500 } : {}),
       }),
     }),
     MailModule,

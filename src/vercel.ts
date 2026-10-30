@@ -19,7 +19,10 @@ type Handler = (req: IncomingMessage, res: ServerResponse) => void;
 let ready: Promise<Handler> | null = null;
 
 async function createHandler(): Promise<Handler> {
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
+  // abortOnError: false — by default Nest kills the process when startup fails,
+  // which on Vercel is a bare FUNCTION_INVOCATION_FAILED; throw instead so the
+  // handler below can answer with the reason
+  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'], abortOnError: false });
   configureApp(app);
   await app.init();
   // Nest's own Express instance: it handles a request when called like a function
@@ -32,6 +35,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     ready = null;
     throw err;
   });
-  const app = await ready;
+  let app: Handler;
+  try {
+    app = await ready;
+  } catch (err) {
+    // Say why instead of a bare FUNCTION_INVOCATION_FAILED. The message is the
+    // driver's (e.g. "connect ECONNREFUSED 127.0.0.1:5432"); it never contains
+    // the password.
+    console.error('API failed to start:', err);
+    res.statusCode = 503;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ status: 'error', message: 'API failed to start', reason: (err as Error).message }));
+    return;
+  }
   app(req, res);
 }
