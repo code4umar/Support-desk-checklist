@@ -7,12 +7,14 @@ import { TicketsService } from './tickets.service';
 import { TicketsController } from './tickets.controller';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Ticket, TicketEvent, TicketTag]),
     UsersModule,
     NotificationsModule,
+    CategoriesModule,
   ],
   providers: [TicketsService],
   controllers: [TicketsController],

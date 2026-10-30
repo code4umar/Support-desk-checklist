@@ -7,6 +7,7 @@ import { TicketEvent } from './ticket-event.entity';
 import { TicketTag } from '../tags/ticket-tag.entity';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CategoriesService } from '../categories/categories.service';
 import { TicketStatus, TicketPriority, UserRole } from '../common/enums';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 
@@ -17,7 +18,8 @@ function mockRepo() {
     save: jest.fn((x) => Promise.resolve({ id: 1, ...x })),
     findOne: jest.fn(),
     remove: jest.fn(),
-    find: jest.fn(),
+    find: jest.fn().mockResolvedValue([]),
+    count: jest.fn().mockResolvedValue(0),
     createQueryBuilder: jest.fn(),
   };
 }
@@ -27,7 +29,8 @@ describe('TicketsService', () => {
   let ticketRepo: ReturnType<typeof mockRepo>;
   let eventRepo: ReturnType<typeof mockRepo>;
   let usersService: { findById: jest.Mock };
-  let notifications: { notifyAdmins: jest.Mock };
+  let notifications: { notifyAdmins: jest.Mock; notifyUsers: jest.Mock };
+  let categories: { assertExists: jest.Mock };
 
   const agent: AuthUser = { id: 99, email: 'agent@x.com', role: UserRole.AGENT };
   const customer: AuthUser = { id: 5, email: 'cust@x.com', role: UserRole.CUSTOMER };
@@ -36,7 +39,11 @@ describe('TicketsService', () => {
     ticketRepo = mockRepo();
     eventRepo = mockRepo();
     usersService = { findById: jest.fn() };
-    notifications = { notifyAdmins: jest.fn().mockResolvedValue(undefined) };
+    notifications = {
+      notifyAdmins: jest.fn().mockResolvedValue(undefined),
+      notifyUsers: jest.fn().mockResolvedValue(undefined),
+    };
+    categories = { assertExists: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -46,6 +53,7 @@ describe('TicketsService', () => {
         { provide: getRepositoryToken(TicketTag), useValue: mockRepo() },
         { provide: UsersService, useValue: usersService },
         { provide: NotificationsService, useValue: notifications },
+        { provide: CategoriesService, useValue: categories },
       ],
     }).compile();
 
@@ -164,5 +172,95 @@ describe('TicketsService', () => {
     expect(arg.ticketId).toBe(saved.id);
     expect(arg.actorId).toBe(customer.id);
     expect(arg.message).toContain('Printer broken');
+  });
+
+  // ---- categories
+  it('stores the category on create after checking it exists', async () => {
+    const saved = await service.create(
+      { subject: 'Refund', body: 'Please', priority: TicketPriority.LOW, categoryId: 3 } as any,
+      customer,
+    );
+    expect(categories.assertExists).toHaveBeenCalledWith(3);
+    expect(saved.category_id).toBe(3);
+  });
+
+  it('rejects an unknown category with 422 and saves nothing', async () => {
+    categories.assertExists.mockRejectedValue(new UnprocessableEntityException('Category does not exist'));
+    await expect(
+      service.create({ subject: 'x', body: 'y', priority: TicketPriority.LOW, categoryId: 999 } as any, customer),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(ticketRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('records priority and category edits in the audit trail', async () => {
+    ticketRepo.findOne.mockResolvedValue({
+      id: 4, requester_id: customer.id, priority: TicketPriority.LOW, category_id: null,
+    });
+    const saved = await service.update(4, { priority: TicketPriority.HIGH, categoryId: 2 }, agent);
+
+    expect(saved.category_id).toBe(2);
+    expect(saved).not.toHaveProperty('categoryId');
+    expect(eventRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ ticket_id: 4, note: 'Priority changed from low to high; Category set to #2' }),
+    );
+  });
+
+  it('writes no audit event when nothing tracked changed', async () => {
+    ticketRepo.findOne.mockResolvedValue({
+      id: 4, requester_id: customer.id, priority: TicketPriority.LOW, category_id: null,
+    });
+    await service.update(4, { subject: 'New subject' }, customer);
+    expect(eventRepo.save).not.toHaveBeenCalled();
+  });
+
+  // ---- known issues
+  it('resolving a known issue resolves its active linked tickets and tells their requesters', async () => {
+    ticketRepo.findOne.mockResolvedValue({ ...ticketWith(TicketStatus.IN_PROGRESS), id: 10, subject: 'Login outage' });
+    ticketRepo.find.mockResolvedValue([
+      { id: 11, status: TicketStatus.OPEN, requester_id: 21, known_issue_id: 10 },
+      { id: 12, status: TicketStatus.IN_PROGRESS, requester_id: 22, known_issue_id: 10 },
+      { id: 13, status: TicketStatus.CLOSED, requester_id: 23, known_issue_id: 10 },
+    ]);
+
+    await service.changeStatus(10, { status: TicketStatus.RESOLVED } as any, agent);
+
+    const savedIds = ticketRepo.save.mock.calls.map((c) => c[0].id);
+    expect(savedIds).toEqual([10, 11, 12]); // the closed one is left alone
+    expect(eventRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ ticket_id: 11, from_status: 'open', to_status: 'resolved', note: 'Resolved together with known issue #10' }),
+    );
+    const arg = notifications.notifyUsers.mock.calls[0][0];
+    expect(arg.userIds).toEqual([21, 22]);
+    expect(arg.type).toBe('ticket_resolved');
+  });
+
+  it('does not cascade on other status changes', async () => {
+    ticketRepo.findOne.mockResolvedValue(ticketWith(TicketStatus.OPEN));
+    await service.changeStatus(1, { status: TicketStatus.IN_PROGRESS } as any, agent);
+    expect(ticketRepo.find).not.toHaveBeenCalled();
+  });
+
+  it('links a ticket to a known issue and records it', async () => {
+    ticketRepo.findOne
+      .mockResolvedValueOnce({ id: 5, known_issue_id: null })
+      .mockResolvedValueOnce({ id: 10, known_issue_id: null });
+    const saved = await service.link(5, 10, agent);
+    expect(saved.known_issue_id).toBe(10);
+    expect(eventRepo.save).toHaveBeenCalledWith(expect.objectContaining({ ticket_id: 5, note: 'Linked to known issue #10' }));
+  });
+
+  it('refuses links that would self-link, chain, or orphan dependants', async () => {
+    await expect(service.link(5, 5, agent)).rejects.toBeInstanceOf(BadRequestException);
+
+    ticketRepo.findOne
+      .mockResolvedValueOnce({ id: 5, known_issue_id: null })
+      .mockResolvedValueOnce({ id: 10, known_issue_id: 3 });
+    await expect(service.link(5, 10, agent)).rejects.toBeInstanceOf(UnprocessableEntityException);
+
+    ticketRepo.findOne
+      .mockResolvedValueOnce({ id: 5, known_issue_id: null })
+      .mockResolvedValueOnce({ id: 10, known_issue_id: null });
+    ticketRepo.count.mockResolvedValueOnce(2);
+    await expect(service.link(5, 10, agent)).rejects.toBeInstanceOf(ConflictException);
   });
 });

@@ -28,4 +28,13 @@ export class AiController {
   suggest(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
     return this.ai.suggestReply(id, user);
   }
+
+  // turn a solved ticket into a draft help article (reviewed before publishing)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post(':id/draft-article')
+  @Roles(UserRole.AGENT, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  draftArticle(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.ai.draftArticle(id, user);
+  }
 }

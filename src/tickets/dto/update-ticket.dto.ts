@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { TicketPriority } from '../../common/enums';
 
 // Deliberately does NOT include `status` or `assigneeId` — those move
@@ -20,4 +20,9 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsEnum(TicketPriority)
   priority?: TicketPriority;
+
+  // null clears the category
+  @IsOptional()
+  @IsInt()
+  categoryId?: number | null;
 }

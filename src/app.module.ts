@@ -29,6 +29,8 @@ import { RatingsModule } from './ratings/ratings.module';
 import { AiModule } from './ai/ai.module';
 import { MailModule } from './mail/mail.module';
 import { CannedRepliesModule } from './canned-replies/canned-replies.module';
+import { CategoriesModule } from './categories/categories.module';
+import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { CannedRepliesModule } from './canned-replies/canned-replies.module';
     RatingsModule,
     AiModule,
     CannedRepliesModule,
+    CategoriesModule,
+    KnowledgeBaseModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -138,7 +138,8 @@ async function seed() {
 
       const ticket = await ticketRepo.save(
         ticketRepo.create({
-          subject: subjects[i % subjects.length] + ` #${i + 1}`,
+          // no "#n" suffix: the UI already shows the ticket id next to the subject
+          subject: subjects[i % subjects.length],
           body: `Details for ticket ${i + 1}: a customer-reported issue seeded for demo purposes.`,
           status,
           priority,
@@ -228,6 +229,72 @@ async function seed() {
     console.log(`Seeded ${TARGET_TICKETS} tickets, ${overdueCount} overdue, ${internalCommentCount} internal comments, ${ticketTagLinkCount} tag links.`);
   } else {
     console.log(`Tickets already exist (${existingTicketCount}) — skipping ticket/comment/event seeding. Safe re-run.`);
+  }
+
+  // Categories themselves come from the migration; here we file uncategorised
+  // tickets by keyword and add starter help articles.
+  const categoryRows: { id: number; name: string }[] = await AppDataSource.query(`SELECT id, name FROM categories`);
+  const categoryId = (name: string) => categoryRows.find((c) => c.name === name)?.id ?? null;
+  if (categoryRows.length) {
+    console.log('Filing uncategorised tickets...');
+    await AppDataSource.query(
+      `UPDATE tickets SET category_id = CASE
+         WHEN subject ~* '(log ?in|password|account)' THEN $1::int
+         WHEN subject ~* '(invoice|charge|billing|refund)' THEN $2::int
+         WHEN subject ~* '(crash|broken|slow|freez|export)' THEN $3::int
+         ELSE $4::int END
+       WHERE category_id IS NULL`,
+      [categoryId('Account & Login'), categoryId('Billing'), categoryId('Technical Issue'), categoryId('General')],
+    );
+  }
+
+  const [{ count: articleCount }] = await AppDataSource.query(`SELECT count(*)::int AS count FROM kb_articles`);
+  if (articleCount === 0) {
+    console.log('Seeding help articles...');
+    const articles: [string, string, string[], string, boolean][] = [
+      [
+        'How to reset your password',
+        '## Forgot your password?\n\n1. Open the **Sign in** page and click **Forgot password**.\n2. Enter the email you signed up with.\n3. Follow the link in the email within 1 hour.\n\nNo email after 5 minutes? Check your spam folder, then [open a ticket](/tickets/new).',
+        ['password', 'login', 'account'],
+        'Account & Login',
+        true,
+      ],
+      [
+        'Why was I charged twice?',
+        'A second charge is usually a **temporary authorisation** that your bank releases within 3–5 working days.\n\nIf both charges are still there after 5 days, open a ticket with:\n\n- the last 4 digits of the card\n- the date and amount of each charge\n\nWe will refund the duplicate in full.',
+        ['billing', 'refund', 'duplicate-charge'],
+        'Billing',
+        true,
+      ],
+      [
+        'Updating your billing address',
+        'Go to **Settings → Billing** and edit the address. Changes apply to your *next* invoice; past invoices cannot be re-issued.',
+        ['billing', 'invoice'],
+        'Billing',
+        true,
+      ],
+      [
+        'The app is slow or freezes',
+        'Try these steps in order:\n\n1. Hard-refresh the page (`Ctrl+Shift+R`).\n2. Clear the site data for this app in your browser settings.\n3. Try a private window to rule out extensions.\n\nStill slow? Include your browser name and version in a ticket.',
+        ['performance', 'bug'],
+        'Technical Issue',
+        true,
+      ],
+      [
+        'Triage checklist for new tickets (staff only)',
+        '> Internal draft — not visible to customers.\n\n- Set the **category** and **priority** first.\n- Link a help article in your first reply when one exists.\n- Urgent tickets: assign within 30 minutes.',
+        ['internal', 'triage'],
+        'General',
+        false,
+      ],
+    ];
+    for (const [title, body, tags, category, published] of articles) {
+      await AppDataSource.query(
+        `INSERT INTO kb_articles (title, body, tags, category_id, published, author_id) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [title, body, tags, categoryId(category), published, admin.id],
+      );
+    }
+    console.log(`Seeded ${articles.length} help articles (1 unpublished draft).`);
   }
 
   console.log('\nSeed complete. Accounts (all share the same password):');

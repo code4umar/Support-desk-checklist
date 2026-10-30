@@ -18,6 +18,7 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
+import { LinkTicketDto, SimilarTicketsQueryDto } from './dto/link-ticket.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -38,6 +39,12 @@ export class TicketsController {
   @Get()
   findAll(@Query() query: ListTicketsQueryDto, @CurrentUser() user: AuthUser) {
     return this.ticketsService.findAll(query, user);
+  }
+
+  // declared before ':id' so "similar" isn't parsed as an id
+  @Get('similar')
+  findSimilar(@Query() query: SimilarTicketsQueryDto, @CurrentUser() user: AuthUser) {
+    return this.ticketsService.findSimilar(query.q, user);
   }
 
   @Get(':id')
@@ -81,6 +88,29 @@ export class TicketsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ticketsService.remove(id);
+  }
+
+  @Post(':id/link')
+  @Roles(UserRole.AGENT, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  link(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: LinkTicketDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.ticketsService.link(id, dto.knownIssueId, user);
+  }
+
+  @Delete(':id/link')
+  @Roles(UserRole.AGENT, UserRole.ADMIN)
+  unlink(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthUser) {
+    return this.ticketsService.unlink(id, user);
+  }
+
+  @Get(':id/linked')
+  @Roles(UserRole.AGENT, UserRole.ADMIN)
+  listLinked(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketsService.listLinked(id);
   }
 
   @Get(':id/events')
