@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Comment } from './comment.entity';
 import { Ticket } from '../tickets/ticket.entity';
+import { TicketEvent } from '../tickets/ticket-event.entity';
 import { UserRole } from '../common/enums';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { assertTicketVisible } from '../common/utils/ticket-visibility';
@@ -18,6 +19,7 @@ export class CommentsService {
     @InjectRepository(Comment) private comments: Repository<Comment>,
     @InjectRepository(Ticket) private tickets: Repository<Ticket>,
     @InjectRepository(User) private users: Repository<User>,
+    @InjectRepository(TicketEvent) private events: Repository<TicketEvent>,
     private notifications: NotificationsService,
   ) {}
 
@@ -39,6 +41,17 @@ export class CommentsService {
       is_internal: wantsInternal,
     });
     const savedComment = await this.comments.save(comment);
+
+    // comments show up in the ticket's audit trail next to status/assignment changes
+    await this.events.save(
+      this.events.create({
+        ticket_id: ticketId,
+        actor_id: user.id,
+        from_status: null,
+        to_status: null,
+        note: wantsInternal ? 'Internal note added' : 'Comment added',
+      }),
+    );
 
     // Mentions & Notifications (Failure in this block should never break comment creation)
     try {

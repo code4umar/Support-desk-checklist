@@ -1,34 +1,12 @@
-import 'dotenv/config';   
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import helmet from 'helmet';
-import * as express from 'express';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { configureApp } from './app.setup';
 
+// Long-running server (local dev, Railway, Render...). Vercel uses vercel.ts instead.
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  app.use(helmet());
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-
-  // Global validation: strips unknown properties (whitelist) and REJECTS
-  // requests that include them (forbidNonWhitelisted). This is what makes
-  // a stray `dueAt` in a create-ticket body come back as 400 (rule 8).
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-
-  app.useGlobalFilters(new AllExceptionsFilter());
-
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  });
+  configureApp(app);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

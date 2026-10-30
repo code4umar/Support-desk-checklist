@@ -5,6 +5,7 @@ import { CommentsService } from './comments.service';
 import { Comment } from './comment.entity';
 import { Ticket } from '../tickets/ticket.entity';
 import { User } from '../users/user.entity';
+import { TicketEvent } from '../tickets/ticket-event.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserRole } from '../common/enums';
 
@@ -14,6 +15,7 @@ describe('CommentsService mentions', () => {
   let tickets: { findOne: jest.Mock };
   let users: { find: jest.Mock; findOne: jest.Mock };
   let notifications: { notifyUsers: jest.Mock };
+  let events: { create: jest.Mock; save: jest.Mock };
 
   const agent = { id: 2, email: 'b@x.com', role: UserRole.AGENT };
   const customer = { id: 9, email: 'c@x.com', role: UserRole.CUSTOMER };
@@ -28,16 +30,25 @@ describe('CommentsService mentions', () => {
     tickets = { findOne: jest.fn().mockResolvedValue({ id: 7, subject: 'Printer broken', requester_id: 9 }) };
     users = { find: jest.fn().mockResolvedValue(staff), findOne: jest.fn().mockResolvedValue({ id: 2, full_name: 'Bilal Agent' }) };
     notifications = { notifyUsers: jest.fn().mockResolvedValue(undefined) };
+    events = { create: jest.fn((x) => x), save: jest.fn((x) => Promise.resolve(x)) };
     const moduleRef = await Test.createTestingModule({
       providers: [
         CommentsService,
         { provide: getRepositoryToken(Comment), useValue: comments },
         { provide: getRepositoryToken(Ticket), useValue: tickets },
         { provide: getRepositoryToken(User), useValue: users },
+        { provide: getRepositoryToken(TicketEvent), useValue: events },
         { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
     service = moduleRef.get(CommentsService);
+  });
+
+  it('records the comment in the ticket audit trail', async () => {
+    await service.create(7, { body: 'Looking into it', isInternal: true } as any, agent);
+    expect(events.save).toHaveBeenCalledWith(
+      expect.objectContaining({ ticket_id: 7, actor_id: 2, note: 'Internal note added' }),
+    );
   });
 
   it('notifies the mentioned staff member, linked to the ticket, and not the author', async () => {

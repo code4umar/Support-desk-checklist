@@ -1,4 +1,4 @@
-import { IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { TicketPriority } from '../../common/enums';
 
 // No `due_at`/`dueAt` field on purpose — it's computed server-side from
@@ -16,4 +16,8 @@ export class CreateTicketDto {
 
   @IsEnum(TicketPriority)
   priority: TicketPriority;
+
+  @IsOptional()
+  @IsInt()
+  categoryId?: number | null;
 }
