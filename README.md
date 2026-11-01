@@ -57,18 +57,7 @@ npm run test:e2e   # end-to-end — needs a real Postgres running with migration
 
 ## Seeded accounts
 
-Every seeded account uses the same password: **`Password123!`**
-
-| Role | Email |
-|---|---|
-| Admin | `admin@supportdesk.test` |
-| Agent | `agent1@supportdesk.test` |
-| Agent | `agent2@supportdesk.test` |
-| Customer | `customer1@supportdesk.test` |
-| Customer | `customer2@supportdesk.test` |
-| Customer | `customer3@supportdesk.test` |
-| Customer | `customer4@supportdesk.test` |
-| Customer | `customer5@supportdesk.test` |
+`npm run seed` creates one admin, two agents and five customers for **local development**. The seed script prints the account emails when it finishes. Credentials for the live deployment are not published — to try the live app, register as a customer, or get in touch for an agent/admin walkthrough.
 
 Seed produces ≥25 tickets across all statuses/priorities, ≥3 overdue, ≥15 comments (≥5 internal), 6 tags, ≥20 ticket-tag links, and an event row for every ticket that has ever left `open`.
 
